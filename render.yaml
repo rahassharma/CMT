@@ -1,0 +1,41 @@
+# Render Blueprint — optional. See DEPLOY.md for the full host comparison;
+# Fly.io / a VPS (docker compose) are the recommended options for a real,
+# always-on install with persistent data.
+#
+# In the Render dashboard: New + > Blueprint > pick the repo (CMT).
+#
+# NOTE: Render's filesystem is ephemeral and free services sleep after ~15 min.
+# A disk requires a paid instance type — uncomment the disk + DATA_DIR blocks
+# together for a persistent install.
+
+services:
+  - type: web
+    name: cmt
+    runtime: python
+    plan: free            # "starter" ($7/mo) required to attach a disk
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 60
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.6"
+      - key: SEED_DEMO
+        value: "0"                 # clean conference start — no demo data
+      - key: ADMIN_EMAIL
+        sync: false                # set in the dashboard: your chair login
+      - key: ADMIN_PASSWORD
+        sync: false                # set in the dashboard: a strong password
+      - key: CONFERENCE_NAME
+        value: "My Conference"
+      - key: CONFERENCE_SHORT
+        value: "CONF"
+    # For a persistent install, uncomment these two blocks AND switch plan to starter:
+    # envVars additions:
+    #   - key: DATA_DIR
+    #     value: /var/data
+    # disk:
+    #   name: cmt-data
+    #   mountPath: /var/data
+    #   sizeGB: 1

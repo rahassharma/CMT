@@ -1,0 +1,47 @@
+# Fly.io configuration — a real, always-on deployment with persistent storage.
+#
+#   fly launch --no-deploy --copy-config   # or: fly launch (and keep this file)
+#   fly volumes create cmt_data --size 1   # 1 GB volume for the DB + PDFs
+#   fly secrets set ADMIN_EMAIL=you@yourconf.org ADMIN_PASSWORD='a-strong-password'
+#   fly deploy
+#
+# `min_machines_running = 1` keeps the app warm — no cold starts.
+app = "cmt"
+primary_region = "bom"          # Mumbai; change to iad/lhr/sin etc.
+
+[build]
+
+[env]
+  DATA_DIR = "/data"
+  SEED_DEMO = "0"               # real conference start, no demo data
+  CONFERENCE_NAME = "My Conference"
+  CONFERENCE_SHORT = "CONF"
+  # Email: set these as secrets to send real notifications
+  # fly secrets set SMTP_HOST=... SMTP_PORT=587 SMTP_USER=... SMTP_PASSWORD=...
+
+[[mounts]]
+  source = "cmt_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = false     # never sleep
+  auto_start_machines = true
+  min_machines_running = 1       # always at least one machine up
+
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 100
+    soft_limit = 80
+
+[[http_service.checks]]
+  interval = "30s"
+  timeout = "5s"
+  grace_period = "20s"
+  method = "GET"
+  path = "/api/health"
+
+[[vm]]
+  size = "shared-cpu-1x"        # ~$3-4/mo always-on
+  memory = "512mb"

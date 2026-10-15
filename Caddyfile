@@ -1,0 +1,34 @@
+# Caddy config for CMT — automatic HTTPS, no manual certificate work.
+#
+# PUBLIC_HOST is injected by docker-compose.https.yml from your .env:
+#     a real domain   ->  cmt.yourconf.org
+#     a free hostname ->  203-0-113-10.sslip.io   (dots in your IP become dashes)
+#     or                  cmt-2026.duckdns.org
+#
+# Caddy asks Let's Encrypt for a certificate as soon as the hostname resolves
+# to this server, and renews it automatically forever.
+
+{$PUBLIC_HOST} {
+	encode gzip
+	reverse_proxy cmt:8000
+
+	# Paper PDFs are uploaded through the app; allow a little more than the
+	# app's own 25 MB cap so oversized uploads get a clean app-level error.
+	request_body {
+		max_size 30MB
+	}
+
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	log {
+		output file /data/access.log {
+			roll_size 10mb
+			roll_keep 3
+		}
+	}
+}

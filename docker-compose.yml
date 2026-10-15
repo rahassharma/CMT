@@ -1,0 +1,34 @@
+# CMT — default deployment: plain HTTP on port 80. No domain needed.
+#     docker compose up -d --build
+#
+# Want HTTPS (recommended)? Use the other file — it adds Caddy with automatic
+# Let's Encrypt certificates for a real domain or a free sslip.io/duckdns name:
+#     docker compose -f docker-compose.https.yml up -d --build
+#
+# Configuration lives in .env next to this file (deploy/oracle-setup.sh writes it).
+
+services:
+  cmt:
+    build: .
+    restart: unless-stopped          # always on, survives reboots
+    environment:
+      DATA_DIR: /data
+      SEED_DEMO: ${SEED_DEMO:-0}     # 0 = real conference, no demo data
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_NAME: ${ADMIN_NAME:-Conference Chair}
+      CONFERENCE_NAME: ${CONFERENCE_NAME:-My Conference}
+      CONFERENCE_SHORT: ${CONFERENCE_SHORT:-CONF}
+      # real email — leave blank to keep notifications in the chair's outbox view
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+    volumes:
+      - cmt_data:/data               # conference.db + uploaded PDFs live here
+    ports:
+      - "${HTTP_PORT:-80}:8000"
+
+volumes:
+  cmt_data:

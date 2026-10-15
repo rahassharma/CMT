@@ -1,0 +1,52 @@
+# CMT with automatic HTTPS — Caddy in front, Let's Encrypt certificates.
+#     docker compose -f docker-compose.https.yml up -d --build
+#
+# Requires PUBLIC_HOST in .env, and that hostname's DNS pointing at this server.
+# Works with a real domain, or a free one that needs no signup:
+#     PUBLIC_HOST=203-0-113-10.sslip.io     # replace dots with dashes (your IP)
+#     PUBLIC_HOST=cmt-2026.duckdns.org      # or a DuckDNS name you created
+#
+# The container port isn't published; only Caddy is reachable from outside.
+
+services:
+  cmt:
+    build: .
+    restart: unless-stopped
+    environment:
+      DATA_DIR: /data
+      SEED_DEMO: ${SEED_DEMO:-0}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_NAME: ${ADMIN_NAME:-Conference Chair}
+      CONFERENCE_NAME: ${CONFERENCE_NAME:-My Conference}
+      CONFERENCE_SHORT: ${CONFERENCE_SHORT:-CONF}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+    volumes:
+      - cmt_data:/data
+    expose:
+      - "8000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - cmt
+    environment:
+      # fails fast with a readable message if you forgot to set it
+      PUBLIC_HOST: ${PUBLIC_HOST:?Set PUBLIC_HOST in .env — your domain, or e.g. 203-0-113-10.sslip.io}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data            # certificates live here, so they survive restarts
+      - caddy_config:/config
+
+volumes:
+  cmt_data:
+  caddy_data:
+  caddy_config:
